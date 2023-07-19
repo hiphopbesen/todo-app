@@ -17,20 +17,19 @@ import {
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import pb from '@/lib/pocketbase'
-
+import getLink from '@/lib/getLink'
 const navigation = [
-  { name: 'Dashboard', href: '#', icon: HomeIcon, current: true },
-  { name: 'ToDo-Listen', href: '#', icon: DocumentDuplicateIcon, current: false },
+  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, current: true },
+  { name: 'ToDo-Listen', href: '/dashboard/lists', icon: DocumentDuplicateIcon, current: false },
 
 ]
-const teams = [
-  { id: 1, name: 'Heroicons', href: '#', initial: '1', current: false },
-  { id: 2, name: 'Tailwind Labs', href: '#', initial: 'T', current: false },
-  { id: 3, name: 'Workcation', href: '#', initial: 'W', current: false },
-]
+
 const userNavigation = [
   { name: 'Dein Profil', href: '#' },
-  { name: 'Ausloggen', href: '#' },
+  { name: 'Ausloggen', href: '#' , onClick: () => {
+    pb.authStore.clear()
+    window.location.href = '/login'
+  } },
 ]
 
 function classNames(...classes: string[]) {
@@ -51,9 +50,19 @@ export default function RootLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(true)
-
-
+  const [teams, setTeams] = useState<any>([])
+  
   useEffect(() => {
+    async function getLists() {
+      
+      //@ts-ignore
+      const records = await pb.collection('lists').getFullList({
+        filter: `creator = '${pb?.authStore?.model?.id}' || coauthors ?~ '${pb?.authStore?.model?.id}' `,
+        sort: '-updated',
+      },{ '$autoCancel': false });
+      setTeams(records)
+    }
+    getLists()
     //check if logged in and redirect to login if not
     if(pb.authStore.isValid){
       setLoading(false)
@@ -139,10 +148,10 @@ export default function RootLayout({
                         <li>
                           <div className="text-xs font-semibold leading-6 text-gray-400">Aktive Listen</div>
                           <ul role="list" className="mt-2 -mx-2 space-y-1">
-                            {teams.map((team) => (
+                            {teams.map((team:any) => (
                               <li key={team.name}>
                                 <a
-                                  href={team.href}
+                                  href={`/dashboard/lists/${team.id}`}
                                   className={classNames(
                                     team.current
                                       ? 'bg-gray-800 text-white'
@@ -151,7 +160,7 @@ export default function RootLayout({
                                   )}
                                 >
                                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
-                                    {team.initial}
+                                    {team.name.charAt(0)}
                                   </span>
                                   <span className="truncate">{team.name}</span>
                                 </a>
@@ -213,10 +222,10 @@ export default function RootLayout({
                 <li>
                   <div className="text-xs font-semibold leading-6 text-gray-400">Aktive Listen</div>
                   <ul role="list" className="mt-2 -mx-2 space-y-1">
-                    {teams.map((team) => (
+                    {teams.map((team:any) => (
                       <li key={team.name}>
                         <a
-                          href={team.href}
+                          href={`/dashboard/lists/${team.id}`}
                           className={classNames(
                             team.current
                               ? 'bg-gray-800 text-white'
@@ -225,7 +234,7 @@ export default function RootLayout({
                           )}
                         >
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
-                            {team.initial}
+                            {team.name.charAt(0)}
                           </span>
                           <span className="truncate">{team.name}</span>
                         </a>
@@ -289,12 +298,12 @@ export default function RootLayout({
                     <span className="sr-only">Open user menu</span>
                     <img
                       className="w-8 h-8 rounded-full bg-gray-50"
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                      alt=""
+                      src={pb.authStore.model ? getLink(pb.authStore.model.collectionId, pb.authStore.model.id, pb.authStore.model.avatar) : '#'}
+                      alt="useravatar"
                     />
                     <span className="hidden lg:flex lg:items-center">
                       <span className="ml-4 text-sm font-semibold leading-6 text-gray-400" aria-hidden="true">
-                        Tom Cook
+                        {pb.authStore.model ? pb.authStore.model.name : 'Login first'}
                       </span>
                       <ChevronDownIcon className="w-5 h-5 ml-2 text-gray-400" aria-hidden="true" />
                     </span>
@@ -313,6 +322,7 @@ export default function RootLayout({
                         <Menu.Item key={item.name}>
                           {({ active }) => (
                             <a
+                              onClick={item.onClick? item.onClick : ()=>{}}
                               href={item.href}
                               className={classNames(
                                 active ? 'bg-gray-50' : '',

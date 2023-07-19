@@ -1,4 +1,9 @@
+'use client'
 import Addlist from './addlist'
+import { useState, useEffect } from 'react'
+import pb from '@/lib/pocketbase'
+import getLink from '@/lib/getLink'
+import Link from 'next/link'
 const people = [
     {
         name: 'Leslie Alexander',
@@ -55,34 +60,43 @@ const people = [
 ]
 
 export default function Example() {
+    const [lists, setLists] = useState<any[]>([])
+    
+    useEffect(() => {
+        async function getLists() {
+            const records = await pb.collection('lists').getFullList({
+                sort: '-created',
+                expand: 'creator'
+            });
+            setLists(records)
+        }
+        getLists()
+    }, [])
+
+    if(lists.length <= 0) return <div>loading...</div>
     return (
         <>
         <ul role="list" className="divide-y divide-gray-400">
-            {people.map((person) => (
-                <li key={person.email} className="flex justify-between py-5 duration-300 cursor-pointer gap-x-6 hover:scale-[1.01]">
+            {lists.map((list) => (
+                <Link href={`/dashboard/lists/${list.id}`} key={list.id}>
+                <li className="flex justify-between py-5 duration-300 cursor-pointer gap-x-6 hover:scale-[1.01]">
                     <div className="flex gap-x-4">
-                        <img className="flex-none w-12 h-12 rounded-full bg-gray-50" src={person.imageUrl} alt="" />
+                        <img className="flex-none w-12 h-12 rounded-full bg-gray-50" src={getLink(list.collectionId, list.id, list.image+'?thumb=100x300')} alt="" />
                         <div className="flex-auto min-w-0">
-                            <p className="text-sm font-semibold leading-6 text-gray-400">{person.name}</p>
-                            <p className="mt-1 text-xs leading-5 text-gray-500 truncate">{person.email}</p>
+                            <p className="text-sm font-semibold leading-6 text-gray-400">{list.name}</p>
+                            <p className="mt-1 text-xs leading-5 text-gray-500 truncate">{list.expand.creator.name}</p>
                         </div>
                     </div>
                     <div className="hidden sm:flex sm:flex-col sm:items-end">
-                        <p className="text-sm leading-6 text-gray-400">{person.role}</p>
-                        {person.lastSeen ? (
+                        <p className="text-sm leading-6 text-gray-400">{list.role}</p>
+                        {list.updated ? (
                             <p className="mt-1 text-xs leading-5 text-gray-500">
-                                Last seen <time dateTime={person.lastSeenDateTime}>{person.lastSeen}</time>
+                                Letztes Update <time dateTime={list.updated}>{new Date(list.updated).toLocaleString('de-DE')}</time>
                             </p>
-                        ) : (
-                            <div className="mt-1 flex items-center gap-x-1.5">
-                                <div className="flex-none p-1 rounded-full bg-emerald-500/20">
-                                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                </div>
-                                <p className="text-xs leading-5 text-gray-500">Online</p>
-                            </div>
-                        )}
+                        ) :null}
                     </div>
                 </li>
+                </Link>
             ))}
         </ul>
         <Addlist></Addlist>
