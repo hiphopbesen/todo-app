@@ -61,10 +61,11 @@ const people = [
 
 export default function Example() {
     const [lists, setLists] = useState<any[]>([])
-    
+    const [error, setError] = useState<boolean>(false)
     useEffect(() => {
         async function getLists() {
             const records = await pb.collection('lists').getFullList({
+                filter: `creator = '${pb?.authStore?.model?.id}' || coauthors ?~ '${pb?.authStore?.model?.id}' || public = true `,
                 sort: '-created',
                 expand: 'creator'
             });
@@ -72,8 +73,10 @@ export default function Example() {
         }
         getLists()
     }, [])
-
-    if(lists.length <= 0) return <div>loading...</div>
+    if(error){
+        throw new Error('Test Error')
+    }
+    if(lists.length <= 0) return <div></div>
     return (
         <>
         <ul role="list" className="divide-y divide-gray-400">
@@ -81,7 +84,6 @@ export default function Example() {
                 <Link href={`/dashboard/lists/${list.id}`} key={list.id}>
                 <li className="flex justify-between py-5 duration-300 cursor-pointer gap-x-6 hover:scale-[1.01]">
                     <div className="flex gap-x-4">
-                        <img className="flex-none w-12 h-12 rounded-full bg-gray-50" src={getLink(list.collectionId, list.id, list.image+'?thumb=100x300')} alt="" />
                         <div className="flex-auto min-w-0">
                             <p className="text-sm font-semibold leading-6 text-gray-400">{list.name}</p>
                             <p className="mt-1 text-xs leading-5 text-gray-500 truncate">{list.expand.creator.name}</p>
@@ -99,7 +101,17 @@ export default function Example() {
                 </Link>
             ))}
         </ul>
-        <Addlist></Addlist>
+        <Addlist lists={lists} setLists={setLists} />
+        <div>
+            <button 
+                className="inline-flex items-center px-3 py-2 mt-5 text-sm font-semibold text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                onClick={() => {
+                    setError(true)
+                }
+            }>
+                Error test
+            </button>
+        </div>
         </>
     )
 }
