@@ -19,7 +19,7 @@ import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import pb from '@/lib/pocketbase'
 import getLink from '@/lib/getLink'
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, current: true },
+  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, current: false },
   { name: 'ToDo-Listen', href: '/dashboard/lists', icon: DocumentDuplicateIcon, current: false },
 
 ]
@@ -54,10 +54,9 @@ export default function RootLayout({
   
   useEffect(() => {
     async function getLists() {
-      
       //@ts-ignore
       const records = await pb.collection('lists').getFullList({
-        filter: `creator = '${pb?.authStore?.model?.id}' || coauthors ?~ '${pb?.authStore?.model?.id}' `,
+        filter: `creator = '${pb?.authStore?.model?.id}' || coauthors ?~ '${pb?.authStore?.model?.id}' || public = true `,
         sort: '-updated',
       },{ '$autoCancel': false });
       setTeams(records)
@@ -170,7 +169,7 @@ export default function RootLayout({
                         </li>
                         <li className="mt-auto">
                           <a
-                            href="#"
+                            href="/dashboard/profile"
                             className="flex p-2 -mx-2 text-sm font-semibold leading-6 text-gray-400 rounded-md group gap-x-3 hover:bg-gray-800 hover:text-white"
                           >
                             <Cog6ToothIcon className="w-6 h-6 shrink-0" aria-hidden="true" />
@@ -244,7 +243,7 @@ export default function RootLayout({
                 </li>
                 <li className="mt-auto">
                   <a
-                    href="#"
+                    href="/dashboard/profile"
                     className="flex p-2 -mx-2 text-sm font-semibold leading-6 text-gray-400 rounded-md group gap-x-3 hover:bg-gray-800 hover:text-white"
                   >
                     <Cog6ToothIcon className="w-6 h-6 shrink-0" aria-hidden="true" />

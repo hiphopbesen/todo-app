@@ -1,26 +1,33 @@
 'use client'
-import { Fragment, useState, useEffect, FormEvent } from "react"
+import { Fragment, useState, useEffect, FormEvent, useRef } from "react"
 import { CalendarIcon, PaperClipIcon, TagIcon, UserCircleIcon } from '@heroicons/react/20/solid'
-import { Listbox, Transition } from '@headlessui/react'
+import { Listbox, Transition , Dialog} from '@headlessui/react'
 import Image from "next/image"
 import pb from '@/lib/pocketbase'
 import getLink from '@/lib/getLink'
+import { TrashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
 function classNames(...classes: any[]) {
     return classes.filter(Boolean).join(' ')
 }
 
+interface Props {
+    params: {
+        id: string
+    }
+}
 
-export default function Page(pageprops: any) {
+export default function Page(pageprops: Props) {
     const id = pageprops.params.id
     const [tabs, setTabs] = useState<any>([
         { name: 'Alle', href: '#', current: true },
         { name: 'Unerledigt', href: '#', current: false },
         { name: 'Erledigt', href: '#', current: false },
     ])
+    const [open, setOpen] = useState(false)
+    const cancelButtonRef = useRef(null)
     const currentTab = tabs.find((tab: any) => tab.current).name
     const [list, setList] = useState<any>([])
-    console.log(list)
     const filteredlist = list.expand?.todos?.filter((todo: any) => {
         if(currentTab === 'Alle') return true
         if(currentTab === 'Unerledigt') return todo.done === false
@@ -42,7 +49,85 @@ export default function Page(pageprops: any) {
     if(list.length <= 0) return <div>loading...</div>
     return (
         <>
-            <h1 className="my-5 text-3xl font-bold ">{list.name}</h1>
+            <Transition.Root show={open} as={Fragment}>
+            <Dialog as="div" className="relative z-10" initialFocus={cancelButtonRef} onClose={setOpen}>
+                <Transition.Child
+                    as={Fragment}
+                    enter="ease-out duration-300"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="ease-in duration-200"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                >
+                    <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" />
+                </Transition.Child>
+
+                <div className="fixed inset-0 z-10 overflow-y-auto">
+                    <div className="flex items-end justify-center min-h-full p-4 text-center sm:items-center sm:p-0">
+                        <Transition.Child
+                            as={Fragment}
+                            enter="ease-out duration-300"
+                            enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                            enterTo="opacity-100 translate-y-0 sm:scale-100"
+                            leave="ease-in duration-200"
+                            leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                            leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                        >
+                            <Dialog.Panel className="relative px-4 pt-5 pb-4 overflow-hidden text-left transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                                <div className="sm:flex sm:items-start">
+                                    <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto bg-red-100 rounded-full sm:mx-0 sm:h-10 sm:w-10">
+                                        <ExclamationTriangleIcon className="w-6 h-6 text-red-600" aria-hidden="true" />
+                                    </div>
+                                    <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                        <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
+                                            Liste löschen
+                                        </Dialog.Title>
+                                        <div className="mt-2">
+                                            <p className="text-sm text-gray-500">
+                                                Wollen sie die Liste wirklich löschen? Alle Todos werden ebenfalls gelöscht.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                                    <button
+                                        type="button"
+                                        className="inline-flex justify-center w-full px-3 py-2 text-sm font-semibold text-white bg-red-600 rounded-md shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto"
+                                        onClick={() => {
+                                            setOpen(false)
+                                            pb.collection('lists').delete(id).then(() => {
+                                                window.location.href = '/dashboard/lists'
+                                            })
+                                        }}
+                                    >
+                                        Löschen
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="inline-flex justify-center w-full px-3 py-2 mt-3 text-sm font-semibold text-gray-900 bg-white rounded-md shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                                        onClick={() => setOpen(false)}
+                                        ref={cancelButtonRef}
+                                    >
+                                        Abbrechen
+                                    </button>
+                                </div>
+                            </Dialog.Panel>
+                        </Transition.Child>
+                    </div>
+                </div>
+            </Dialog>
+            </Transition.Root>
+            <div className="flex justify-between">
+                <h1 className="my-5 text-3xl font-bold ">{list.name}</h1>
+                <button
+                    onClick={() => setOpen(true)}
+                    className="flex p-3 my-auto rounded-md hover:bg-gray-700 hover:text-gray-50"
+                >
+                    <p>Liste löschen</p>
+                    <TrashIcon className="w-5 h-5 text-gray-400 cursor-pointer hover:text-gray-50" aria-hidden="true" />
+                </button>
+            </div>
             <div>
             <div className="sm:hidden">
                 <label htmlFor="tabs" className="sr-only">
@@ -99,7 +184,7 @@ export default function Page(pageprops: any) {
                 </div>
             </div>
             </div>
-            {filteredlist.length > 0 && filteredlist.map((todo: any) => (
+            {filteredlist?.length > 0 && filteredlist.map((todo: any) => (
                 //get current tab
                 <div key={todo.id} className="p-3 my-4 bg-gray-900 border border-gray-600 rounded-lg shadow-sm">
                     <div className="grid sm:grid-cols-[0.1fr_2fr_1fr]">
@@ -187,6 +272,7 @@ export default function Page(pageprops: any) {
 
 
 
+
 const AddTodo = (props: any) => {
     console.log(props)
     let assignees = [
@@ -194,7 +280,7 @@ const AddTodo = (props: any) => {
     ]
     //add coauthors to assignees
     
-    if(props.authors.length > 0){
+    if(props.authors?.length > 0){
         props.authors.map((author: any) => {
             assignees.push({ name: author.name, avatar: getLink( author.collectionId,author.id, author.avatar), value: author.id })
         })

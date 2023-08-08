@@ -1,8 +1,11 @@
 'use client'
-import { Fragment, useState } from 'react'
+import { FormEvent, Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { LinkIcon, PlusIcon, QuestionMarkCircleIcon } from '@heroicons/react/20/solid'
+import pb from '@/lib/pocketbase'
+import getLink from '@/lib/getLink'
+import UserSelect from '../../../../components/UserSelect'
 
 const team = [
     {
@@ -42,9 +45,59 @@ const team = [
     },
 ]
 
-export default function Addlist() {
-    const [open, setOpen] = useState(true)
+interface Props {
+    lists: any[],
+    setLists: any,
+}
+
+export default function Addlist(props: Props) {
+    const { lists, setLists } = props;
+    const [open, setOpen] = useState(false)
+    const [privacyValue, setPrivacyValue] = useState('public');
+    const [team, setTeam] = useState<any>({})
+    const [usercollection, setUsercollection] = useState<any>([])
+    async function handleSubmit(e: FormEvent<HTMLFormElement>): Promise<void> {
+        e.preventDefault()
+        const data = new FormData(e.currentTarget)
+        let editorids: any = [];
+        usercollection.forEach((item: any) => {
+            editorids.push(item.id)
+        })
+        const formdata = {
+            creator: pb?.authStore?.model?.id,
+            coauthors: editorids,
+            public: privacyValue === 'public' ? true : false,
+            name: data.get('project-name'),
+            description: data.get('description'),
+            privacy: privacyValue,
+        }
+        let created = await pb.collection('lists').create(formdata,{
+            expand: 'creator'
+        });
+        setLists([...lists, created ])
+        setOpen(false)
+    }
+
+
+    if (Object.keys(team).length > 0) {
+        if (!usercollection.find((g: any) => g.id === team.id)) {
+            setUsercollection([...usercollection, team]);
+        }
+        setTeam({});
+    }
+    const remove = (item: any) => {
+        setUsercollection(usercollection.filter((g: any) => g.id !== item.id));
+    }
     return (
+        <>
+        <button
+            type="button"
+            className="inline-flex items-center px-3 py-2 mt-5 text-sm font-semibold text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            onClick={() => setOpen(true)}
+        >
+            <PlusIcon className="w-5 h-5 mr-2" aria-hidden="true" />
+            <span>Neue Liste</span>
+        </button>
         <Transition.Root show={open} as={Fragment}>
             <Dialog as="div" className="relative z-50" onClose={setOpen}>
                 <div className="fixed inset-0" />
@@ -61,7 +114,7 @@ export default function Addlist() {
                                 leaveTo="translate-x-full"
                             >
                                 <Dialog.Panel className="w-screen max-w-md pointer-events-auto">
-                                    <form className="flex flex-col h-full bg-gray-900 divide-y divide-gray-600 shadow-xl">
+                                    <form onSubmit={(e)=>handleSubmit(e)} className="flex flex-col h-full bg-gray-900 divide-y divide-gray-600 shadow-xl">
                                         <div className="flex-1 h-0 overflow-y-auto">
                                             <div className="px-4 py-6 bg-indigo-700 sm:px-6">
                                                 <div className="flex items-center justify-between">
@@ -121,29 +174,38 @@ export default function Addlist() {
                                                                 />
                                                             </div>
                                                         </div>
+                                                        {/* Editoren */}
+                                                        {
+                                                            privacyValue === 'closed' &&
                                                         <div>
                                                             <h3 className="text-sm font-medium leading-6 text-gray-400">Editoren</h3>
                                                             <div className="mt-2">
-                                                                <div className="flex space-x-2">
-                                                                    {team.map((person) => (
-                                                                        <a key={person.email} href={person.href} className="rounded-full hover:opacity-75">
-                                                                            <img
-                                                                                className="inline-block w-8 h-8 rounded-full"
-                                                                                src={person.imageUrl}
-                                                                                alt={person.name}
-                                                                            />
-                                                                        </a>
-                                                                    ))}
-                                                                    <button
-                                                                        type="button"
-                                                                        className="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 text-gray-400 bg-white border-2 border-gray-200 border-dashed rounded-full hover:border-gray-300 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                                                    >
-                                                                        <span className="sr-only">Add team member</span>
-                                                                        <PlusIcon className="w-5 h-5" aria-hidden="true" />
-                                                                    </button>
+                                                                <div>
+                                                                    <div>
+                                                                        {usercollection.map((item: any) => (
+                                                                            <span key={item.id} className="inline-flex mr-2 mb-2 items-center gap-x-0.5 rounded-md bg-gray-50 px-2 py-1 text-sm font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                                                                                {item.name}
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        remove(item);
+                                                                                    }}
+                                                                                    type="button" className="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-gray-500/20">
+
+                                                                                    <span className="sr-only">Remove</span>
+                                                                                    <svg viewBox="0 0 14 14" className="h-3.5 w-3.5 stroke-gray-600/50 group-hover:stroke-gray-600/75">
+                                                                                        <path d="M4 4l6 6m0-6l-6 6" />
+                                                                                    </svg>
+                                                                                    <span className="absolute -inset-1" />
+                                                                                </button>
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                    <UserSelect table='users' filter='' placeholder='Nutzer' multiselected={usercollection} set={setTeam} />
                                                                 </div>
                                                             </div>
                                                         </div>
+                                                        }
+
                                                         <fieldset>
                                                             <legend className="text-sm font-medium leading-6 text-gray-400">Privatsphäre</legend>
                                                             <div className="mt-2 space-y-4">
@@ -156,6 +218,10 @@ export default function Addlist() {
                                                                             type="radio"
                                                                             className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
                                                                             defaultChecked
+                                                                            onChange={(e) => {
+                                                                                //if this is checked, set the privacy value to public
+                                                                                if(e.currentTarget.checked) setPrivacyValue('public')
+                                                                            }}
                                                                         />
                                                                     </div>
                                                                     <div className="text-sm leading-6 pl-7">
@@ -175,6 +241,10 @@ export default function Addlist() {
                                                                                 name="privacy"
                                                                                 aria-describedby="privacy-private-to-project-description"
                                                                                 type="radio"
+                                                                                onChange={(e) => {
+                                                                                    //if this is checked, set the privacy value to public
+                                                                                    if(e.currentTarget.checked) setPrivacyValue('closed')
+                                                                                }}
                                                                                 className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
                                                                             />
                                                                         </div>
@@ -196,6 +266,10 @@ export default function Addlist() {
                                                                                 name="privacy"
                                                                                 aria-describedby="privacy-private-to-project-description"
                                                                                 type="radio"
+                                                                                onChange={(e) => {
+                                                                                    //if this is checked, set the privacy value to public
+                                                                                    if(e.currentTarget.checked) setPrivacyValue('private')
+                                                                                }}
                                                                                 className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-600"
                                                                             />
                                                                         </div>
@@ -211,29 +285,6 @@ export default function Addlist() {
                                                                 </div>
                                                             </div>
                                                         </fieldset>
-                                                    </div>
-                                                    <div className="pt-4 pb-6">
-                                                        <div className="flex text-sm">
-                                                            <a
-                                                                href="#"
-                                                                className="inline-flex items-center font-medium text-indigo-600 group hover:text-indigo-900"
-                                                            >
-                                                                <LinkIcon
-                                                                    className="w-5 h-5 text-indigo-500 group-hover:text-indigo-900"
-                                                                    aria-hidden="true"
-                                                                />
-                                                                <span className="ml-2">Copy link</span>
-                                                            </a>
-                                                        </div>
-                                                        <div className="flex mt-4 text-sm">
-                                                            <a href="#" className="inline-flex items-center text-gray-500 group hover:text-gray-400">
-                                                                <QuestionMarkCircleIcon
-                                                                    className="w-5 h-5 text-gray-400 group-hover:text-gray-500"
-                                                                    aria-hidden="true"
-                                                                />
-                                                                <span className="ml-2">Learn more about sharing</span>
-                                                            </a>
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -261,5 +312,6 @@ export default function Addlist() {
                 </div>
             </Dialog>
         </Transition.Root>
+        </>
     )
 }
