@@ -25,7 +25,7 @@ const navigation = [
 ]
 
 const userNavigation = [
-  { name: 'Dein Profil', href: '#' },
+  { name: 'Dein Profil', href: '../dashboard/profile' },
   { name: 'Ausloggen', href: '#' , onClick: () => {
     pb.authStore.clear()
     window.location.href = '/login'
@@ -340,7 +340,7 @@ export default function RootLayout({
             </div>
           </div>
 
-          <main className="py-10">
+          <main className="py-10 ">
             <div className="px-4 sm:px-6 lg:px-8">{children}</div>
           </main>
         </div>
