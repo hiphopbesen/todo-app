@@ -61,7 +61,7 @@ export default function Example() {
                                 Bachelorarbeit 
                             </h1>
                             <p className="mt-6 text-lg leading-8 text-gray-300">
-                                Diese App entstand im Rahmen der Bachelorarbeit von Luca Schoenherr
+                                Diese App entstand im Rahmen der Bachelorarbeit von Luca Schönherr
                             </p>
                             <div className="flex items-center mt-10 gap-x-6">
                                 

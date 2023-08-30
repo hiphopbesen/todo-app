@@ -76,7 +76,7 @@ export default function Example() {
     if(error){
         throw new Error('Test Error')
     }
-    if(lists.length <= 0) return <div></div>
+    if(lists.length <= 0) return <div><Addlist lists={lists} setLists={setLists} /></div>
     return (
         <>
         <ul role="list" className="divide-y divide-gray-400">

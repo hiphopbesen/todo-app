@@ -87,7 +87,7 @@ export default function Home() {
       <Suspense fallback={<div>loading...</div>}>
         <Dash />
       </Suspense>
-      <div className="px-2 py-10 mx-auto max-w-7xl sm:py-32 lg:py-10">
+      <div className="px-2 py-10 mx-auto max-w-7xl sm:py-32 lg:py-10 ">
         <div className="mx-auto divide-y divide-white/10">
           <h2 className="text-2xl font-bold leading-10 tracking-tight text-white">Wilkommen bei der Todo App</h2>
           <dl className="mt-10 space-y-6 divide-y divide-white/10">

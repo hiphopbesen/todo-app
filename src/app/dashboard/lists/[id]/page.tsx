@@ -1,7 +1,7 @@
 'use client'
 import { Fragment, useState, useEffect, FormEvent, useRef } from "react"
 import { CalendarIcon, PaperClipIcon, TagIcon, UserCircleIcon } from '@heroicons/react/20/solid'
-import { Listbox, Transition , Dialog} from '@headlessui/react'
+import { Listbox, Transition , Dialog, Switch} from '@headlessui/react'
 import Image from "next/image"
 import pb from '@/lib/pocketbase'
 import getLink from '@/lib/getLink'
@@ -218,11 +218,11 @@ export default function Page(pageprops: Props) {
                         <a href="#" className="flex-shrink-0 block group">
                         <div className="flex items-center">
                             <div>
-                            <img
-                                className="inline-block rounded-full h-9 w-9"
-                                src={getLink(todo.expand?.assigned?.collectionId, todo.expand.assigned.id, todo.expand.assigned.avatar)}
-                                alt=""
-                            />
+                                <img
+                                    className="inline-block rounded-full h-9 w-9"
+                                    src={getLink(todo.expand?.assigned?.collectionId, todo.expand.assigned.id, todo.expand.assigned.avatar)}
+                                    alt=""
+                                />
                             </div>
                             <div className="ml-3">
                             <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{todo.expand.assigned.username}</p>
@@ -251,7 +251,7 @@ export default function Page(pageprops: Props) {
                         </p>
                         </div>
                     </div>
-                    <div className="flex pt-3 mt-3 border-t border-gray-600">
+                    <div className="flex flex-col pt-3 mt-3 border-t border-gray-600 gap-y-5 sm:flex-row">
                         {todo.image && 
                             <Image
                                 src={getLink(todo.collectionId, todo.id, todo.image)}
@@ -260,7 +260,7 @@ export default function Page(pageprops: Props) {
                                 height={200}
                             />
                         }
-                        <p className="pl-10 text-sm text-gray-400">{todo.text}</p>
+                        <p className="text-sm text-center text-gray-400 sm:text-left sm:pl-10">{todo.text}</p>
                     </div>
                 </div>
             ))}
@@ -274,7 +274,6 @@ export default function Page(pageprops: Props) {
 
 
 const AddTodo = (props: any) => {
-    console.log(props)
     let assignees = [
         { name: 'Unassigned', avatar: "", value: null },
     ]
@@ -313,23 +312,30 @@ const AddTodo = (props: any) => {
         const description = data.get('description') as string;
         const image = data.get('attachment') as File;
         let until: Date|null = new Date()
+
         if(dated.value === 'tomorrow'){
             until.setDate(until.getDate() + 1)
         }else if(dated.value === 'week'){
             until.setDate(until.getDate() + 7)
-        }else{
+        }else if(dated.value === 'today'){
+            until = new Date()
+        }
+        else{
             until = null
         }
-
+        console.log(until)
         data.append("user",  pb?.authStore?.model?.id as string)
         data.append("done",  "false",)
         data.append("title",  title,)
         data.append("text",  description,)
-        data.append("assigned",  assigned.value as unknown as string)
+        if(assigned.value !== null){
+            data.append("assigned",  assigned.value as unknown as string)
+        }
         data.append("labelled",  labelled.value as string)
-        data.append("dated",  until as unknown as string)
+        if(until){
+            data.append("dated",  until as unknown as string)
+        }
         data.append("image",  image)
-        console.log(data)
         let tmpids = props.listids
         if(pb?.authStore?.model?.id === null) return
         const record = await pb.collection('todos').create(data)
@@ -338,6 +344,8 @@ const AddTodo = (props: any) => {
             expand: 'todos.user,todos.assigned,coauthors,creator',
         })
         props.setLists(updatedlist)
+        //reset form
+        form.reset();
     }
     return (
         <form onSubmit={(e)=>handleaddtodo(e)} className="relative bg-gray-900">
@@ -379,8 +387,8 @@ const AddTodo = (props: any) => {
             </div>
 
             <div className="absolute bottom-0 inset-x-px">
-                {/* Actions: These are just examples to demonstrate the concept, replace/wire these up however makes sense for your project. */}
                 <div className="flex justify-end px-2 py-2 space-x-2 flex-nowrap sm:px-3">
+                    {props.authors?.length > 0 &&
                     <Listbox as="div" value={assigned} onChange={setAssigned} className="flex-shrink-0">
                         {({ open }) => (
                             <>
@@ -437,6 +445,7 @@ const AddTodo = (props: any) => {
                             </>
                         )}
                     </Listbox>
+                    }
                     <Listbox as="div" value={labelled} onChange={setLabelled} className="flex-shrink-0">
                         {({ open }) => (
                             <>
